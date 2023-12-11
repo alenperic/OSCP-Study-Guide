@@ -1,7 +1,7 @@
 # OSCP-Study-Guide
 Study guide and command sheet for Offensive Security PEN-200 course (Offensive Security Certified Professional - OSCP)
 
-## Information Gathering
+## Passive Information Gathering
 Passive information gathering in pentesting involves collecting data about a target system or network without direct interaction, typically using tools and techniques to analyze publicly available information and detect vulnerabilities.
 
 ### Whois Enumeration
@@ -30,10 +30,35 @@ Netcraft is an internet service company offering a free web portal that provides
 
 [Netcraft Search](https://searchdns.netcraft.com/)
 
-### Netcraft
-Netcraft is an 
+### Open-Source Code
+Online tools and resources can be used for passive information gathering to analyze code stored online, revealing an organization's programming languages, frameworks, and occasionally sensitive data accidentally committed to public repositories. Platforms like GitHub support advanced search operators, allowing for targeted searches within user or organization repositories, as demonstrated by finding a file named "xampp.users" containing potentially useful credentials for active attack phases.
 
+### Shodan
+Shodan is a search engine that scans and indexes internet-connected devices, including servers, routers, and IoT devices, providing detailed information like IP addresses, services, and banner data without actively interacting with the target. Unlike traditional search engines that focus on web content, Shodan reveals a target's internet footprint, including service versions and potential vulnerabilities, which is invaluable for planning active penetration testing phases.
 
+### SSL/TLS & Security Headers
+Specialty websites like Security Headers and Qualys SSL Labs can be used to assess a website or domain's security posture, offering insights into an organization's coding and security practices through analysis of HTTP response headers and SSL/TLS configurations. While Security Headers checks for defensive headers, indicating server hardening awareness, Qualys SSL Labs evaluates SSL/TLS setups against best practices, revealing vulnerabilities and outdated practices.
+
+[Security Headers](https://securityheaders.com/)
+
+## Active Information Gathering
+Active information gathering in pentesting involves directly interacting with the target system or network, using techniques like port scanning, vulnerability scanning, and attempting to exploit identified weaknesses to obtain detailed and specific information.
+
+### DNS Enumeration
+DNS Enumeration is a critical part of information gathering in cybersecurity, focusing on translating domain names into IP addresses and exploring the hierarchical structure of DNS to identify various records and hostnames associated with a target domain. Techniques include using commands like 'host' to query different DNS record types and employing tools like DNSRecon and DNSenum for automated, extensive enumeration, as demonstrated with the domain "domain.com", which helps in revealing a target's network structure and potential vulnerabilities.
+```bash
+host www.domain.com
+```
+By specifying the -t option, we can query for specific DNS records:
+```bash
+host -t mx www.domain.com
+```
+OR
+```bash
+host -t txt www.domain.com
+```
+
+For automation of 
 
 ## Disclaimer and Legal Notice
 
