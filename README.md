@@ -58,7 +58,10 @@ OR
 host -t txt www.domain.com
 ```
 
-For automation of 
+For automation of DNS subdomain discovery, we can utilize the following one liner:
+```bash
+For ip in $(cat list.txt); do host $ip.domain.com; done
+```
 
 ## Disclaimer and Legal Notice
 
