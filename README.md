@@ -63,6 +63,89 @@ For automation of DNS subdomain discovery, we can utilize the following one line
 For ip in $(cat list.txt); do host $ip.domain.com; done
 ```
 
+DNS brute forcing is a technique to identify valid IP addresses associated with a given domain by systematically trying different IP addresses. This can be achieved using simple bash scripting:
+```bash
+for ip in $(cat list.txt); do host $ip.domain.com; done
+```
+This command reads IP addresses from `list.txt` and checks if they are associated with `domain.com`.
+
+### Scanning Subdomains for Hostnames
+To identify active subdomains within a specific IP range, the following script can be used:
+```bash
+for ip in $(seq 1 254); do host 192.168.0.$ip; done | grep -v "not found"
+```
+This script iterates over IP addresses in the range `192.168.0.1` to `192.168.0.254` and filters out responses with "not found".
+
+### Automated DNS Enumeration Tools
+- **DNS Recon**: An advanced Python script for DNS enumeration:
+  ```bash
+  dnsrecon -d domain.com -t std
+  ```
+- **Bruteforcing with DNSRecon**: 
+  ```bash
+  dnsrecon -d domain.com -D list.txt -t brt
+  ```
+- **DNSenum2**: A tool for enumerating DNS information from a file:
+  ```bash
+  dnsenum domain.txt
+  ```
+- **Windows NSLookup**: In Windows, the `nslookup` command can be used for DNS information retrieval.
+
+### Port Scanning with NMAP
+NMAP is a powerful tool for port scanning and network discovery:
+- Default TCP scan of the top 1000 ports:
+  ```bash
+  sudo nmap -sT target_ip
+  ```
+
+### SMTP Enumeration
+SMTP enumeration is used to validate existing users on an SMTP server:
+```bash
+nc -nv 192.168.0.1 25
+VRFY root
+VRFY testaccount
+```
+For automated SMTP enumeration, a Python script like `smtp.py` can be used:
+```bash
+python3 smtp.py johndoe 192.168.0.1
+```
+
+### SNMP Enumeration
+SNMP enumeration can expose credentials and features weak authentication methods:
+- Scanning for SNMP services:
+  ```bash
+  sudo nmap -sU --open -p 161 192.168.0.1-254 -oG open-snmp.txt
+  ```
+- Using OneSixtyOne for SNMP bruteforcing:
+  ```bash
+  for ip in $(seq 1 254); do echo 192.168.0.$ip; done > ips
+  onesixtyone -c community -i ips
+  ```
+- SNMPWalk framework usage:
+  ```bash
+  snmpwalk -c public -v1 -t 10 192.168.0.1
+  ```
+- Commands to output SNMP users, running processes, and listening ports:
+  ```bash
+  snmpwalk -c public -v1 192.168.0.1 1.3.6.1.4.77.1.2.25
+  snmpwalk -c public -v1 192.168.0.1 1.3.6.1.2.1.25.4.2.1.2
+  snmpwalk -c public -v1 192.168.0.1 1.3.6.1.2.1.6.13.1.3
+  ```
+
+### NMAP NSE Vulnerability Scanning
+NMAP's NSE scripts can be used for vulnerability scanning. However, caution is advised as some scripts can be intrusive:
+- Locating vulnerability scripts:
+  ```bash
+  cd /usr/share/nmap/scripts
+  grep "\'vuln\'" script.db
+  ```
+- Performing a vulnerability scan:
+  ```bash
+  sudo nmap -sV -p 443 --script "vuln" 192.168.0.1
+  ```
+
+Continue...
+  
 ## Disclaimer and Legal Notice
 
 ### Ethical Considerations and Legal Compliance
