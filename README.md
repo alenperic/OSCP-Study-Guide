@@ -14,6 +14,10 @@ Mini server:
 ```bash
 python3 -m http.server 8080
 ```
+### Netcat
+```bash
+nc -nvlp 1337
+```
 
 ## Passive Information Gathering
 Passive information gathering in pentesting involves collecting data about a target system or network without direct interaction, typically using tools and techniques to analyze publicly available information and detect vulnerabilities.
@@ -434,16 +438,10 @@ UNION-based SQL injections involve using the UNION SQL operator to combine the r
 - **Extraction of User Data**: Successfully extracted usernames and MD5 password hashes from the `users` table, including administrative accounts.
 - **MD5 Hashes**: Retrieved MD5 password hashes can potentially be decrypted using appropriate tools or services.
 
-## Conclusion
-UNION-based SQL injection is a powerful technique for extracting sensitive information from a database. By carefully crafting SQL queries and understanding the database structure, attackers can exploit these vulnerabilities to retrieve a wide range of data.
-
-## Caution
-The techniques and examples provided are for educational purposes only. Unauthorized testing and exploitation of vulnerabilities without consent is illegal and unethical.
+## Checking PDF files for metadata
+```bash
+exiftool -a -u test.pdf
 ```
-
-- missing blind SQL injection
-
-
 
 
 ## Disclaimer and Legal Notice
